@@ -12,7 +12,7 @@ class Classifier:
         y = y.reshape(-1, 1)
         self.beta = np.zeros([X.shape[1], 1])
         while not self.stopper.stop(self):
-            self._train_iteration(X, y)
+            self._train_outer_iteration(X, y)
             y_pred_proba = self._predict(X)
             self.log_likelihood.append(self._log_likelihood(y, y_pred_proba))
         return self
