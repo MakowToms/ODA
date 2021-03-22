@@ -46,9 +46,8 @@ class Classifier:
 
 class CoordinateClassifier(Classifier):
 
-    def __init__(self, eps=0.001, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.eps = eps
 
     def _train_outer_iteration(self, X, y):
         for i in range(X.shape[1]):
