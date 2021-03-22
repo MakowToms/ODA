@@ -1,11 +1,11 @@
-from logistic_regression.stopper import Stopper
-from logistic_regression.metric import Metric
+from stopper import Stopper
+from metric import Metric
 import numpy as np
 
 
 class Classifier:
-    def __init__(self, stop_condition=None, **kwargs):
-        self.stopper = Stopper(stop_condition=stop_condition, **kwargs)
+    def __init__(self, **kwargs):
+        self.stopper = Stopper(**kwargs)
         self.beta = None
 
     def fit(self, X, y):
