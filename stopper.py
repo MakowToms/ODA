@@ -1,6 +1,6 @@
 
 class Stopper:
-    def __init__(self, max_iter: int = 1000, **kwargs):
+    def __init__(self, max_iter: int = 10, **kwargs):
         self.max_iter = max_iter
         self.n_iter = 0
         self.kwargs = kwargs
