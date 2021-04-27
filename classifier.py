@@ -135,5 +135,17 @@ class PermutedCoordinateClassifier(CoordinateClassifier):
 
     def _train_outer_iteration(self):
         print(f'Iteration {self.stopper.n_iter}')
+        coordinates = np.random.choice(np.arange(0, self.p), self.p, replace=False)
+        for coordinate in coordinates:
+            self._train_inner_iteration(coordinate)
+
+
+class OnlineCoordinateClassifier(CoordinateClassifier):
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def _train_outer_iteration(self):
+        print(f'Iteration {self.stopper.n_iter}')
         coordinate = np.random.randint(0, self.p)
         self._train_inner_iteration(coordinate)
