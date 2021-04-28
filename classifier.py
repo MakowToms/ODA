@@ -1,6 +1,7 @@
 from stopper import Stopper
 from metric import Metric
 import numpy as np
+from scipy.sparse import linalg
 
 
 class Classifier:
@@ -75,7 +76,7 @@ class Classifier:
 
     @staticmethod
     def _log_likelihood(y_true, y_pred_proba):
-        return (np.log(y_pred_proba).T @ y_true + np.log(1 - y_pred_proba).T @ (1 - y_true))[0, 0]
+        return (np.log(y_pred_proba + 1e-6).T @ y_true + np.log(1 - y_pred_proba + 1e-6).T @ (1 - y_true))[0, 0]
 
 
 class CoordinateClassifier(Classifier):
@@ -149,3 +150,71 @@ class OnlineCoordinateClassifier(CoordinateClassifier):
         print(f'Iteration {self.stopper.n_iter}')
         coordinate = np.random.randint(0, self.p)
         self._train_inner_iteration(coordinate)
+
+
+class TrustRegionNewtonClassifier(Classifier):
+    def __init__(self, eta0=1e-4, eta1=0.25, eta2=0.75, sigma1=0.25, sigma2=0.5, sigma3=4, **kwargs):
+        super().__init__(**kwargs)
+
+        if eta0 <= 0:
+            raise ValueError("eta0 must be greater than 0")
+
+        if eta2 >= 1:
+            raise ValueError("eta2 must be lesser than 1")
+
+        if eta1 <= 0:
+            raise ValueError("eta1 must be greater than 0")
+
+        if eta2 <= eta1:
+            raise ValueError("eta2 must be greater than eta1")
+
+        if sigma3 <= 1:
+            raise ValueError("sigma3 must be greater than 1")
+
+        if sigma1 <= 0:
+            raise ValueError("sigma1 must be greater than 0")
+
+        if sigma2 >= 1:
+            raise ValueError("sigma2 must be lesser than 1")
+
+        if sigma2 <= sigma1:
+            raise ValueError("sigma2 must be greater than sigma1")
+
+        self.eta0 = eta0
+        self.eta1 = eta1
+        self.eta2 = eta2
+        self.sigma1 = sigma1
+        self.sigma2 = sigma2
+        self.sigma3 = sigma3
+
+    def _train_outer_iteration(self):
+        np.matmul(self.X, self.w) * self.y
+
+
+class CMLSClassifier(CoordinateClassifier):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.__outer_iter = 0
+
+        self.__delta = None
+
+    def fit(self, X, y):
+        self.__delta = np.repeat(10, X.shape[1])
+        CoordinateClassifier.fit(self, X, y)
+
+    def _train_outer_iteration(self):
+        self.ck = max(0, 1 - self.__outer_iter/50)
+        CoordinateClassifier._train_outer_iteration(self)
+        self.__outer_iter += 1
+
+    def _train_inner_iteration(self, i):
+        print(f'w={self.w} at beginning of changing coordinate {i}')
+
+        beta = np.where((np.matmul(self.X, self.w) * self.y).reshape(-1,) <= 1 + np.abs(self.__delta[i]*self.X[:, i]), 2*self.C, 0)
+        U = 1 + (beta * self.w[i, 0]).sum()
+        d = self.compute_D_derivative(i, 0)
+
+        z = min(max(-d/U, -self.__delta[i]), self.__delta[i])
+
+        self.__delta[i] = 2*np.abs(z) + 1e-6
+        self.w[i] += z
