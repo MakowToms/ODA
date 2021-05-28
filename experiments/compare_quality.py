@@ -32,7 +32,8 @@ for dataset in datasets:
     for classifier in classifiers:
         results[f'{dataset.name}, {classifier.__name__}'] = quality_of_classifier_on_dataset(classifier, dataset, max_iter)
         print(f'Ended {i}/{n}: {dataset.name}, {classifier.__name__}')
+        i += 1
 
 df = pd.DataFrame(results).T
 
-df[['Acc', 'Precision', 'Recall']]
+print(df.to_string())
