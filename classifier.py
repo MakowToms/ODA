@@ -1,7 +1,6 @@
 from stopper import Stopper
 from metric import Metric
 import numpy as np
-from scipy.sparse import linalg
 
 
 class Classifier:
@@ -87,12 +86,10 @@ class CoordinateClassifier(Classifier):
         super().__init__(**kwargs)
 
     def _train_outer_iteration(self):
-        print(f'Iteration {self.stopper.n_iter}')
         for i in range(self.p):
             self._train_inner_iteration(i)
 
     def _train_inner_iteration(self, i):
-        print(f'w={self.w} at beginning of changing coordinate {i}')
         d = - self.compute_D_derivative(i, 0) / self.compute_D_second_derivative(i, 0)
         lambda_ = 1
         while not self.optimally_constraint_12(i, lambda_*d):
@@ -135,7 +132,6 @@ class PermutedCoordinateClassifier(CoordinateClassifier):
         super().__init__(**kwargs)
 
     def _train_outer_iteration(self):
-        print(f'Iteration {self.stopper.n_iter}')
         coordinates = np.random.choice(np.arange(0, self.p), self.p, replace=False)
         for coordinate in coordinates:
             self._train_inner_iteration(coordinate)
@@ -147,7 +143,6 @@ class OnlineCoordinateClassifier(CoordinateClassifier):
         super().__init__(**kwargs)
 
     def _train_outer_iteration(self):
-        print(f'Iteration {self.stopper.n_iter}')
         coordinate = np.random.randint(0, self.p)
         self._train_inner_iteration(coordinate)
 
@@ -208,8 +203,6 @@ class CMLSClassifier(CoordinateClassifier):
         self.__outer_iter += 1
 
     def _train_inner_iteration(self, i):
-        print(f'w={self.w} at beginning of changing coordinate {i}')
-
         beta = np.where((np.matmul(self.X, self.w) * self.y).reshape(-1,) <= 1 + np.abs(self.__delta[i]*self.X[:, i]), 2*self.C, 0)
         U = 1 + (beta * self.w[i, 0]).sum()
         d = self.compute_D_derivative(i, 0)
