@@ -1,6 +1,7 @@
 from stopper import Stopper
 from metric import Metric
 import numpy as np
+from scipy.optimize import minimize
 
 
 class Classifier:
@@ -147,7 +148,7 @@ class OnlineCoordinateClassifier(CoordinateClassifier):
         self._train_inner_iteration(coordinate)
 
 
-class TrustRegionNewtonClassifier(Classifier):
+class TrustRegionNewtonClassifier(CoordinateClassifier):
     def __init__(self, eta0=1e-4, eta1=0.25, eta2=0.75, sigma1=0.25, sigma2=0.5, sigma3=4, **kwargs):
         super().__init__(**kwargs)
 
@@ -183,7 +184,15 @@ class TrustRegionNewtonClassifier(Classifier):
         self.sigma3 = sigma3
 
     def _train_outer_iteration(self):
-        np.matmul(self.X, self.w) * self.y
+        d = np.array([self.compute_D_derivative(i, 0) for i in range(self.p)])
+        d2 = np.array([self.compute_D_second_derivative(i, 0) for i in range(self.p)])
+        s = minimize(
+            fun=lambda s: d*s + (0.5 * s**2 * d2).sum(),
+        x0=0, method='trust-ncg',
+        jac=lambda s: s*d2 + d,
+        hess=lambda s: np.diag(d2)).x
+
+
 
 
 class CMLSClassifier(CoordinateClassifier):
@@ -194,7 +203,7 @@ class CMLSClassifier(CoordinateClassifier):
         self.__delta = None
 
     def fit(self, X, y):
-        self.__delta = np.repeat(10, X.shape[1])
+        self.__delta = np.repeat(10, X.shape[1]+1)
         CoordinateClassifier.fit(self, X, y)
 
     def _train_outer_iteration(self):
@@ -203,11 +212,14 @@ class CMLSClassifier(CoordinateClassifier):
         self.__outer_iter += 1
 
     def _train_inner_iteration(self, i):
-        beta = np.where((np.matmul(self.X, self.w) * self.y).reshape(-1,) <= 1 + np.abs(self.__delta[i]*self.X[:, i]), 2*self.C, 0)
+        #beta = np.where((np.matmul(self.X, self.w) * self.y).reshape(-1,) <= 1 + np.abs(self.__delta[i]*self.X[:, i]), 2*self.C, 0)
+        c = max(0, 1 - self.__outer_iter/50)
+        ywx = (np.matmul(self.X, self.w) * self.y).reshape(-1,)
+        beta = np.where(1 - ywx > 0, 1 - ywx, c*(1 - ywx))
         U = 1 + (beta * self.w[i, 0]).sum()
         d = self.compute_D_derivative(i, 0)
 
         z = min(max(-d/U, -self.__delta[i]), self.__delta[i])
 
-        self.__delta[i] = 2*np.abs(z) + 1e-6
+        self.__delta[i] = 2*np.abs(z) + 1e-3
         self.w[i] += z
