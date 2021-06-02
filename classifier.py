@@ -183,17 +183,38 @@ class TrustRegionNewtonClassifier(CoordinateClassifier):
         self.sigma2 = sigma2
         self.sigma3 = sigma3
 
+        self.__delta = 1
+
     def _train_outer_iteration(self):
-        d = np.array([self.compute_D_derivative(i, 0) for i in range(self.p)])
-        d2 = np.array([self.compute_D_second_derivative(i, 0) for i in range(self.p)])
+        d = np.array([self.compute_D_derivative(i, 0)[0] for i in range(self.p)])
+        d2 = np.array([self.compute_D_second_derivative(i, 0)[0] for i in range(self.p)])
+        q = lambda s: (d*s + 0.5 * s**2 * d2).sum()
         s = minimize(
-            fun=lambda s: d*s + (0.5 * s**2 * d2).sum(),
-        x0=0, method='trust-ncg',
-        jac=lambda s: s*d2 + d,
-        hess=lambda s: np.diag(d2)).x
+            fun=q,
+            x0=np.zeros(self.p), method='trust-ncg',
+            jac=lambda s: s*d2 + d,
+            hess=lambda s: np.diag(d2)).x
 
+        if (s**2).sum() > self.__delta:
+            s *= np.sqrt(self.__delta / (s**2).sum())
 
+        ro = (self.L2_SVM_loss(self.w + s.reshape(-1, 1)) - self.L2_SVM_loss()) / q(s)
 
+        if ro > self.eta0:
+            self.w += s.reshape(-1, 1)
+
+        if ro <= self.eta1:
+            self.__delta = np.random.uniform(
+                self.sigma1*min((s**2).sum(), self.__delta),
+                self.sigma2*self.__delta)
+        elif self.eta1 < ro < self.eta2:
+            self.__delta = np.random.uniform(
+                self.sigma1*self.__delta, self.sigma3*self.__delta
+            )
+        else:
+            self.__delta = np.random.uniform(
+                self.__delta, self.sigma3*self.__delta
+            )
 
 class CMLSClassifier(CoordinateClassifier):
     def __init__(self, **kwargs):
