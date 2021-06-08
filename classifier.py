@@ -22,41 +22,30 @@ class Classifier:
         self.w = np.zeros([self.p, 1])
         self.X = X
         self.y = y
-        while not self.stopper.stop():
+        while not self.stopper.stop(self):
+            print(Metric.Acc.evaluate(self._predict(X), y))
             self._train_outer_iteration()
             # y_pred_proba = self._predict(X)
             # self.log_likelihood.append(self._log_likelihood(y, y_pred_proba))
         return self
 
-    # not implemented
-    @FutureWarning
-    def predict_proba(self, X):
-        return self._predict(X).reshape(-1)
+    def predict(self, X):
+        X = self._add_ones(X)
+        return self._predict(X)
 
-    # not implemented
-    @FutureWarning
-    def predict(self, X, threshold=0.5):
-        y_pred = np.zeros(X.shape[0])
-        y_pred[self._predict(X).reshape(-1) > threshold] = 1
-        return y_pred
-
-    # not implemented
-    @FutureWarning
-    def score(self, X, y_true, metric: Metric):
+    def score(self, X, y_true, metric: Metric = Metric.Acc):
         y_pred = self.predict(X)
         return metric.evaluate(y_true, y_pred)
 
     def _train_outer_iteration(self):
         pass
 
-    # TODO how to predict probabilities in SVM? since _predict method should return probabilities
-    # for now method returns classes
     def _predict(self, X):
         """
         :param X: matrix with observations: n_observations x n_predictors
         :return: predictions as np.array n_observations x 1
         """
-        res = np.sign(self._add_ones(X) @ self.w)
+        res = np.sign(X @ self.w)
         res = res.reshape(-1)
         res[res == 0] = 1  # should be rare unless w==0
         return res
@@ -93,7 +82,12 @@ class CoordinateClassifier(Classifier):
     def _train_inner_iteration(self, i):
         d = - self.compute_D_derivative(i, 0) / self.compute_D_second_derivative(i, 0)
         lambda_ = 1
+        i = 0
         while not self.optimally_constraint_12(i, lambda_*d):
+            i += 1
+            if i >= 1000:
+                print('Ended because of too many iterations')
+                break
             lambda_ *= self.Beta
         self.w[i, 0] += lambda_*d
 
@@ -225,7 +219,7 @@ class CMLSClassifier(CoordinateClassifier):
 
     def fit(self, X, y):
         self.__delta = np.repeat(10, X.shape[1]+1)
-        CoordinateClassifier.fit(self, X, y)
+        return CoordinateClassifier.fit(self, X, y)
 
     def _train_outer_iteration(self):
         self.ck = max(0, 1 - self.__outer_iter/50)
