@@ -23,7 +23,7 @@ class Classifier:
         self.X = X
         self.y = y
         while not self.stopper.stop(self):
-            print(Metric.Acc.evaluate(self._predict(X), y))
+            # print(Metric.Acc.evaluate(self._predict(X), y))
             self._train_outer_iteration()
             # y_pred_proba = self._predict(X)
             # self.log_likelihood.append(self._log_likelihood(y, y_pred_proba))
@@ -218,23 +218,33 @@ class CMLSClassifier(CoordinateClassifier):
         self.__delta = None
 
     def fit(self, X, y):
-        self.__delta = np.repeat(10, X.shape[1]+1)
-        return CoordinateClassifier.fit(self, X, y)
+        self.__delta = np.ones(X.shape[1]+1) * 10
+        # self.z = np.zeros(X.shape[1]+1)
+        super(CMLSClassifier, self).fit(X, y)
+        return self
 
     def _train_outer_iteration(self):
         self.ck = max(0, 1 - self.__outer_iter/50)
-        CoordinateClassifier._train_outer_iteration(self)
+        # self.w_old = np.array(self.w)
+        for i in range(self.p):
+            self._train_inner_iteration(i)
         self.__outer_iter += 1
 
+    def beta(self, w):
+        ywx = (np.matmul(self.X, w) * self.y).reshape(-1,)
+        return np.where(1 - ywx > 0, 1 - ywx, self.ck*(1 - ywx))
+
+    def beta2(self, w, i):
+        return np.where((np.matmul(self.X, w) * self.y).reshape(-1,) <= 1 + np.abs(self.__delta[i]*self.X[:, i]), 2*self.C, 0)
+
     def _train_inner_iteration(self, i):
-        #beta = np.where((np.matmul(self.X, self.w) * self.y).reshape(-1,) <= 1 + np.abs(self.__delta[i]*self.X[:, i]), 2*self.C, 0)
-        c = max(0, 1 - self.__outer_iter/50)
-        ywx = (np.matmul(self.X, self.w) * self.y).reshape(-1,)
-        beta = np.where(1 - ywx > 0, 1 - ywx, c*(1 - ywx))
-        U = 1 + (beta * self.w[i, 0]).sum()
+        # wz = np.array(self.w_old)
+        # wz[i] += self.z[i]
+        beta = self.beta2(self.w, i)
+        U = 1 + beta.sum()
         d = self.compute_D_derivative(i, 0)
 
         z = min(max(-d/U, -self.__delta[i]), self.__delta[i])
 
-        self.__delta[i] = 2*np.abs(z) + 1e-3
+        self.__delta[i] = 2*np.abs(z) + 1e-1
         self.w[i] += z
