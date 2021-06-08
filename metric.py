@@ -3,7 +3,7 @@ from aenum import Enum, extend_enum
 
 
 def accuracy(labels_true, labels_pred):
-    return np.sum(labels_true == labels_pred) / labels_true.shape[0]
+    return np.mean(labels_true == labels_pred)
 
 
 def true_positive(labels_true, labels_pred):
