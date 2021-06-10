@@ -5,7 +5,7 @@ from scipy.optimize import minimize
 
 
 class Classifier:
-    def __init__(self, C=1, **kwargs):
+    def __init__(self, name='Classifier', C=1, **kwargs):
         self.C = C
         self.stopper = Stopper(**kwargs)
         self.w = None
@@ -13,6 +13,7 @@ class Classifier:
         self.p = None
         self.X = None
         self.y = None
+        self.name = name
 
     def fit(self, X, y):
         X = self._add_ones(X)
@@ -70,10 +71,10 @@ class Classifier:
 
 class CoordinateClassifier(Classifier):
 
-    def __init__(self, sigma=0.01, Beta=0.5, **kwargs):
+    def __init__(self, name='Coordinate', sigma=0.01, Beta=0.5, **kwargs):
         self.sigma = sigma
         self.Beta = Beta
-        super().__init__(**kwargs)
+        super().__init__(name=name, **kwargs)
 
     def _train_outer_iteration(self):
         for i in range(self.p):
@@ -82,10 +83,10 @@ class CoordinateClassifier(Classifier):
     def _train_inner_iteration(self, i):
         d = - self.compute_D_derivative(i, 0) / self.compute_D_second_derivative(i, 0)
         lambda_ = 1
-        i = 0
+        j = 0
         while not self.optimally_constraint_12(i, lambda_*d):
-            i += 1
-            if i >= 1000:
+            j += 1
+            if j >= 1000:
                 print('Ended because of too many iterations')
                 break
             lambda_ *= self.Beta
@@ -123,19 +124,19 @@ class CoordinateClassifier(Classifier):
 
 class PermutedCoordinateClassifier(CoordinateClassifier):
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, name='Permuted', **kwargs):
+        super().__init__(name=name, **kwargs)
 
     def _train_outer_iteration(self):
-        coordinates = np.random.choice(np.arange(0, self.p), self.p, replace=False)
+        coordinates = np.random.choice(self.p, self.p, replace=False)
         for coordinate in coordinates:
             self._train_inner_iteration(coordinate)
 
 
 class OnlineCoordinateClassifier(CoordinateClassifier):
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, name='Online', **kwargs):
+        super().__init__(name=name, **kwargs)
 
     def _train_outer_iteration(self):
         coordinate = np.random.randint(0, self.p)
@@ -143,8 +144,8 @@ class OnlineCoordinateClassifier(CoordinateClassifier):
 
 
 class TrustRegionNewtonClassifier(CoordinateClassifier):
-    def __init__(self, eta0=1e-4, eta1=0.25, eta2=0.75, sigma1=0.25, sigma2=0.5, sigma3=4, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, name='TrustRegion', eta0=1e-4, eta1=0.25, eta2=0.75, sigma1=0.25, sigma2=0.5, sigma3=4, **kwargs):
+        super().__init__(name=name, **kwargs)
 
         if eta0 <= 0:
             raise ValueError("eta0 must be greater than 0")
@@ -211,8 +212,8 @@ class TrustRegionNewtonClassifier(CoordinateClassifier):
             )
 
 class CMLSClassifier(CoordinateClassifier):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, name='CMLS', **kwargs):
+        super().__init__(name=name, **kwargs)
         self.__outer_iter = 0
 
         self.__delta = None
@@ -248,3 +249,6 @@ class CMLSClassifier(CoordinateClassifier):
 
         self.__delta[i] = 2*np.abs(z) + 1e-1
         self.w[i] += z
+
+# wykres liniowy L2 lossu od iteracji
+# czas na logarytmiczny y, datasets x classifiers

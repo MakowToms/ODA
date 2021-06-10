@@ -1,4 +1,5 @@
 import numpy as np
+from time import time
 
 
 class Stopper:
@@ -6,7 +7,10 @@ class Stopper:
         self.max_iter = max_iter
         self.n_iter = 0
         self.kwargs = kwargs
-        self.last_loss = np.inf
+        self.best5 = np.ones([5]) * np.inf
+        self.loss_history = []
+        self.start_time = time()
+        self.time_history = []
 
     def new_training(self):
         self.n_iter = 0
@@ -16,10 +20,13 @@ class Stopper:
         kwargs.update(self.kwargs)
         self.n_iter += 1
         loss = classifier.L2_SVM_loss()[0][0]
+        self.loss_history.append(loss)
+        self.time_history.append(time() - self.start_time)
         print(loss)
         if self.n_iter >= self.max_iter:
             return True
-        if (self.last_loss - loss) / loss < 1e-3:
+        if (max(self.best5) - loss) / loss < 1e-3:
             return True
-        self.last_loss = loss
+        if loss < self.best5.max():
+            self.best5[self.best5.argmax()] = loss
         return False
