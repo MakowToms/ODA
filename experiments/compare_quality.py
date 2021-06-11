@@ -91,3 +91,146 @@ plt.ylabel('time')
 plt.yticks([1, 3, 10, 30], ['1', '3', '10', '30'])
 plt.xticks(rotation=0)
 plt.show()
+
+
+def params_of_coordinate_descent(dataset: Dataset, max_iter: int, sigma=0.01, Beta=0.5, C=1):
+    c = CoordinateClassifier(sigma=sigma, Beta=Beta, C=C, max_iter=max_iter).fit(dataset.X_train, dataset.y_train)
+    return c.stopper.loss_history, c.stopper.time_history
+
+
+max_iter = 200
+results = {}
+i = 1
+n = len(datasets) * 4
+for dataset in datasets:
+    loss_histories = []
+    time_histories = []
+    classifier_names = []
+
+    for sigma in [0.001, 0.01, 0.1, 0.5]:
+        loss_history, time_history = params_of_coordinate_descent(dataset, max_iter, sigma=sigma)
+        print(f'Ended {i}/{n}: {dataset.name}, {sigma}')
+        print(loss_history)
+        i += 1
+        loss_histories.append(loss_history)
+        time_histories.append(time_history)
+        classifier_names.append(sigma)
+
+    # loss plot
+    for i in range(4):
+        plt.plot(loss_histories[i], label=classifier_names[i])
+    plt.title(f'Training loss for {dataset.name} dataset, compare sigma')
+    plt.xlabel('iterations')
+    plt.ylabel('L2 SVM loss')
+    plt.yscale('log')
+    plt.yticks([30, 100, 300, 1000], ['30', '100', '300', '1000'])
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(f'{dataset.name}_sigma_iters.png', pad_inches=0.2)
+    plt.show()
+
+    for i in range(4):
+        plt.plot(time_histories[i], loss_histories[i], label=classifier_names[i])
+        print(classifier_names[i])
+        print(time_histories[i])
+    plt.title(f'Training loss for {dataset.name} dataset, compare sigma')
+    plt.xlabel('time')
+    plt.ylabel('L2 SVM loss')
+    plt.yscale('log')
+    plt.yticks([30, 100, 300, 1000], ['30', '100', '300', '1000'])
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(f'{dataset.name}_sigma_time.png', pad_inches=0.2)
+    plt.show()
+
+
+max_iter = 200
+results = {}
+i = 1
+n = len(datasets) * 4
+for dataset in datasets:
+    loss_histories = []
+    time_histories = []
+    classifier_names = []
+
+    for Beta in [0.01, 0.1, 0.5, 0.9]:
+        loss_history, time_history = params_of_coordinate_descent(dataset, max_iter, Beta=Beta)
+        print(f'Ended {i}/{n}: {dataset.name}, {Beta}')
+        print(loss_history)
+        i += 1
+        loss_histories.append(loss_history)
+        time_histories.append(time_history)
+        classifier_names.append(Beta)
+
+    # loss plot
+    for i in range(4):
+        plt.plot(loss_histories[i], label=classifier_names[i])
+    plt.title(f'Training loss for {dataset.name} dataset, compare Beta')
+    plt.xlabel('iterations')
+    plt.ylabel('L2 SVM loss')
+    plt.yscale('log')
+    plt.yticks([30, 100, 300, 1000], ['30', '100', '300', '1000'])
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(f'{dataset.name}_Beta_iters.png', pad_inches=0.2)
+    plt.show()
+
+    for i in range(4):
+        plt.plot(time_histories[i], loss_histories[i], label=classifier_names[i])
+        print(classifier_names[i])
+        print(time_histories[i])
+    plt.title(f'Training loss for {dataset.name} dataset, compare Beta')
+    plt.xlabel('time')
+    plt.ylabel('L2 SVM loss')
+    plt.yscale('log')
+    plt.yticks([30, 100, 300, 1000], ['30', '100', '300', '1000'])
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(f'{dataset.name}_Beta_time.png', pad_inches=0.2)
+    plt.show()
+
+
+max_iter = 200
+results = {}
+i = 1
+n = len(datasets) * 4
+for dataset in datasets:
+    loss_histories = []
+    time_histories = []
+    classifier_names = []
+
+    for C in [0.01, 0.1, 1, 10]:
+        loss_history, time_history = params_of_coordinate_descent(dataset, max_iter, C=C)
+        print(f'Ended {i}/{n}: {dataset.name}, {C}')
+        print(loss_history)
+        i += 1
+        loss_histories.append(loss_history)
+        time_histories.append(time_history)
+        classifier_names.append(C)
+
+    # loss plot
+    for i in range(4):
+        plt.plot(loss_histories[i], label=classifier_names[i])
+    plt.title(f'Training loss for {dataset.name} dataset, compare C')
+    plt.xlabel('iterations')
+    plt.ylabel('L2 SVM loss')
+    plt.yscale('log')
+    plt.yticks([30, 100, 300, 1000], ['30', '100', '300', '1000'])
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(f'{dataset.name}_C_iters.png', pad_inches=0.2)
+    plt.show()
+
+    for i in range(4):
+        plt.plot(time_histories[i], loss_histories[i], label=classifier_names[i])
+        print(classifier_names[i])
+        print(time_histories[i])
+    plt.title(f'Training loss for {dataset.name} dataset, compare C')
+    plt.xlabel('time')
+    plt.ylabel('L2 SVM loss')
+    plt.yscale('log')
+    plt.yticks([30, 100, 300, 1000], ['30', '100', '300', '1000'])
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(f'{dataset.name}_C_time.png', pad_inches=0.2)
+    plt.show()
